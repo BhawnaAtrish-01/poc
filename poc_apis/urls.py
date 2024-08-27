@@ -41,7 +41,7 @@ urlpatterns = [
         name="col_deletion_rejection",
     ),
     path(
-        "record_deletion_approved/<str:record_id>/",
+        "record_deletion_approved/",
         RecordDeletionApproved.as_view(),
         name="record_deletion_approved",
     ),

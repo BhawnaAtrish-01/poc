@@ -631,31 +631,43 @@ class ColDeletionRejectedView(APIView):
             )
 
 
-class RecordDeletionApproved(APIView):
-    def post(self, request, record_id, *args, **kwargs):
+class RecordDeletionApproved(APIView):   
+    def post(self, request, *args, **kwargs):
         """
-        Mark a specific row as deleted by admin.
+        Mark multiple rows as deleted by admin.
         """
+        record_ids = request.data.get("record_ids", [])
+        print(record_ids)
+        if not record_ids:
+            return Response(
+                {"error": "No record IDs provided"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
-            result = table_data.update_one(
-                {"_id": ObjectId(record_id)}, {"$set": {"deleted_by_admin": True}}
+            # Convert string IDs to ObjectId
+            object_ids = [ObjectId(record_id) for record_id in record_ids]
+            print(object_ids)
+            # Update the records in the database
+            result = deleted_columns.update_many(
+                {"_id": {"$in": object_ids}}, 
+                {"$set": {"deleted_by_admin": True}}
             )
 
             if result.matched_count == 0:
                 return Response(
-                    {"error": "Record not found"}, status=status.HTTP_404_NOT_FOUND
+                    {"error": "No matching records found"}, 
+                    status=status.HTTP_404_NOT_FOUND
                 )
 
             return Response(
-                {"message": "Record marked as deleted by admin successfully"},
+                {"message": f"{result.matched_count} record(s) marked as deleted by admin successfully"},
                 status=status.HTTP_200_OK,
             )
 
         except Exception as e:
             return Response(
-                {
-                    "error": f"Error marking record as deleted by admin in MongoDB: {str(e)}"
-                },
+                {"error": f"Error marking records as deleted by admin in MongoDB: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
